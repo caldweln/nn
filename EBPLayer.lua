@@ -4,13 +4,13 @@ require 'cephes'
 local EBPLayer, Parent = torch.class('nn.EBPLayer', 'nn.Module')
 
 
-function EBPLayer:__init(isFirstLayer, isLastLayer, inputSize, outputSize, opt)
+function EBPLayer:__init(inputSize, outputSize, opt)
   Parent.__init(self)
 
   self.weight = torch.Tensor(outputSize, inputSize)
   self.bias = torch.Tensor(outputSize,1)
-  self.isFirstLayer = isFirstLayer
-  self.isLastLayer = isLastLayer
+  self.isFirstLayer = 0
+  self.isLastLayer = 0
   self.inputSize = inputSize
   if opt.sigma and opt.sigma > 0 then
     self:reset(1,opt.sigma)  -- original method
