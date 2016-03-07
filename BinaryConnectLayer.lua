@@ -25,8 +25,8 @@ function BinaryConnectLayer:_binarize(data)
     result[ p:ge(0.5) ] = 1
     result[ p:lt(0.5) ] = -1
   elseif self.binarization == 'det' then
-    result[ result:gt(0) ] = 1
-    result[ result:le(0) ] = -1
+    result[ result:ge(0) ] = 1
+    result[ result:lt(0) ] = -1
   end
   return result
 end
