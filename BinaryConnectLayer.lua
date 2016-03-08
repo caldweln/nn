@@ -18,15 +18,21 @@ function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
    self:reset()
 end
 
-function BinaryConnectLayer:_binarize(data)
+function BinaryConnectLayer:_binSigmoid(x)
+  return torch.cmax(torch.cmin((x+1)/2,1),0)
+end
+
+function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold for +1
   local result = data:clone()
   if self.binarization == 'stoch' then
-    local p = torch.cmax(torch.cmin((result+1)/2,1),0) --hard sigmoid
-    result[ p:ge(0.5) ] = 1
-    result[ p:lt(0.5) ] = -1
+    threshold = threshold or 0.5
+    local p = self:_binSigmoid(result)
+    result[ p:ge(threshold) ] = 1
+    result[ p:lt(threshold) ] = -1
   elseif self.binarization == 'det' then
-    result[ result:ge(0) ] = 1
-    result[ result:lt(0) ] = -1
+    threshold = threshold or 0
+    result[ result:ge(threshold) ] = 1
+    result[ result:lt(threshold) ] = -1
   end
   return result
 end
