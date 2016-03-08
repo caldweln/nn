@@ -17,12 +17,12 @@ function BinaryOutputLinear:updateOutput(input)
   if not self.train then
     if self.weightsDirty > 0 then
       self.binWeight = torch.sign(self.rvWeight)
-      self.weightsDirty == 0
+      self.weightsDirty = 0
     end
     self.weight = self.binWeight
   end
 
-  self.output = Parent.updateOutput(input)
+  self.output = Parent.updateOutput(self, input)
 
   if not self.train then
     self.weight = self.rvWeight
