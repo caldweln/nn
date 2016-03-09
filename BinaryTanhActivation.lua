@@ -1,8 +1,8 @@
 local BinaryTanhActivation, Parent = torch.class('nn.BinaryTanhActivation', 'nn.Module')
 
-function BinaryTanhActivation:__init(binarization)
+function BinaryTanhActivation:__init(binWeights)
    Parent.__init(self)
-   self.binarization = binarization or 'stoch'
+   self.binWeights = binWeights or 'stoch'
 end
 
 function BinaryTanhActivation:_binSigmoid(x)
@@ -15,11 +15,11 @@ end
 function BinaryTanhActivation:updateOutput(input)
   self.output:resizeAs(input)
   self.output = input:clone() -- non-destructive on input
-  if self.binarization == 'stoch' then
+  if self.binWeights == 'stoch' then
     local p = self:_binSigmoid(self.output)
     self.output[ p:ge(0.5) ] = 1
     self.output[ p:lt(0.5) ] = -1
-  elseif self.binarization == 'det' then
+  elseif self.binWeights == 'det' then
     --  make all positive values  1
     self.output[ input:gt(0) ] = 1;
     -- make all other values -1
