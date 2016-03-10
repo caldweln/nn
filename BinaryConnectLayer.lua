@@ -20,16 +20,27 @@ function BinaryConnectLayer:_binSigmoid(x)
 end
 
 function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold for +1
+  local binTime = sys.clock()
   local result = data:clone() -- non-destructive
   if self.binarization == 'stoch' then
     threshold = threshold or 0.5
     local p = self:_binSigmoid(result)
     result[ p:ge(threshold) ] = 1
     result[ p:lt(threshold) ] = -1
+
+      Log.write("<BinaryConnectLayer:_binarize> time to binarize (stoch): " .. string.format("%.2f",(sys.clock() - binTime)) .. "s")
+
   elseif self.binarization == 'det' then
+
+      binTime = sys.clock()
     threshold = threshold or 0
-    result[ result:ge(threshold) ] = 1
-    result[ result:lt(threshold) ] = -1
+    --result[ result:ge(threshold) ] = 1
+    --result[ result:lt(threshold) ] = -1
+    --result:apply(function(x) if x >= threshold then return 1 end return -1 end)
+
+    result:maskedFill(result:ge(threshold) , 1)
+    result:maskedFill(result:lt(threshold) , -1)
+    Log.write("<BinaryConnectLayer:_binarize> time to binarize (det): " .. string.format("%.2f",(sys.clock() - binTime)) .. "s")
   end
   return result
 end
@@ -43,15 +54,19 @@ function BinaryConnectLayer:_clip(data, upper, lower)
 end
 
 function BinaryConnectLayer:updateOutput(input)
-
+  local updateTime = sys.clock()
   if self.weightsDirty > 0 then
     self.binWeight = self:_binarize(self.rvWeight)
     self.weightsDirty = 0
   end
 
+  Log.write("<BinaryConnectLayer:updateOutput> time to binarize: " .. string.format("%.2f",(sys.clock() - updateTime)) .. "s")
+  updateTime = sys.clock()
   -- switch to binary weights for duration of upgradeGradInput
   self.weight = self.binWeight
+  updateTime = sys.clock()
   self.output = Parent.updateOutput(self, input)
+  Log.write("<BinaryConnectLayer:updateOutput> time to update output: " .. string.format("%.2f",(sys.clock() - updateTime)) .. "s")
   self.weight = self.rvWeight
 
   return self.output
