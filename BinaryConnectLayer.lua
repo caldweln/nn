@@ -41,8 +41,7 @@ end
 function BinaryConnectLayer:_clip(data, upper, lower)
   local upper = upper or 1
   local lower = lower or -1
-  data[ data:gt(upper) ] = upper
-  data[ data:lt(lower) ] = lower
+  data:apply(function(x) if x > upper then return upper elseif x < lower then return lower end end)
   return data
 end
 
