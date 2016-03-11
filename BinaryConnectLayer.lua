@@ -1,19 +1,36 @@
-
 local BinaryConnectLayer, Parent = torch.class('nn.BinaryConnectLayer', 'nn.Linear')
 
 function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
-   Parent.__init(self, inputSize, outputSize)
-   self.verbose = opt.verbose
-   -- binarized parameters for propagation
-   self.rvWeight = torch.Tensor(outputSize, inputSize)
-   self.binWeight = torch.Tensor(outputSize, inputSize)
-   self.weightsDirty = 1 -- flag to update binWeights
-   self.powerGlorot = powerGlorot or 0 -- Glorot disable => 0, adam optim => 1, sgd optim => 2
-   self.binarization = opt.binarization or 'det' -- 'det' | 'stoch'
-   -- pointer to real-valued weights by default
-   self.weight = self.rvWeight
+  Parent.__init(self, inputSize, outputSize)
+  self.verbose = opt.verbose
+  -- binarized parameters for propagation
+  self.rvWeight = torch.Tensor(outputSize, inputSize)
+  self.binWeight = torch.Tensor(outputSize, inputSize)
+  self.weightsDirty = 1 -- flag to update binWeights
+
+  -- calculation of Glorot coefficients for use in scaling learningRate
+  local coeffGlorot = 1 / math.sqrt( 1.5 / ( self.weight:size(2) + self.weight:size(1) ) )
+  self.powerGlorot = powerGlorot or 0 -- Glorot disable => 0, adam optim => 1, sgd optim => 2
+  self.scaleGlorot = math.pow(coeffGlorot,self.powerGlorot)
+
+  self.binarization = opt.binarization or 'det' -- 'det' | 'stoch'
+  -- pointer to real-valued weights by default
+  self.weight = self.rvWeight
   -- initialize
-   self:reset()
+
+  if opt.weightInitTbl then
+    self:initWeights(opt.weightInitTbl.alpha,opt.weightInitTbl.beta,opt.weightInitTbl.gamma,opt.weightInitTbl.delta)
+  else
+    self:reset()
+  end
+end
+
+
+function BinaryConnectLayer:initWeights(alpha, beta, gamma, delta)
+  local u = alpha * math.pow(beta,gamma) + delta
+  self.weight:uniform(-u, u)
+  self.bias:uniform(-u, u)
+  return self
 end
 
 function BinaryConnectLayer:_binSigmoid(x)
@@ -32,23 +49,25 @@ function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold fo
   elseif self.binarization == 'det' then
     binTime = sys.clock()
     threshold = threshold or 0
-    result:apply(function(x) if x >= threshold then return 1 end return -1 end)
+    if type(result.snap) == 'function' then -- this is enough for our purposes
+      result:snap(threshold, -1, threshold-1e-10, 1) --subtract v small number to approximate replace > with >= (carefull: replacing < with <= may have condition overlap)
+      if self.verbose > 4 then print("<BinaryConnectLayer:_binarize> using 'Tensor.snap' to update tensor") end
+    else
+      result:apply(function(x) if x >= threshold then return 1 end return -1 end)
+      if self.verbose > 4 then print("<BinaryConnectLayer:_binarize> using 'Tensor.apply' to update tensor") end
+    end
   end
   if self.verbose > 4 then print("<BinaryConnectLayer:_binarize> time to binarize (" .. self.binarization .. "): " .. string.format("%.2f",(sys.clock() - binTime)) .. "s") end
   return result
 end
 
-function BinaryConnectLayer:_clip(data, upper, lower)
-  local upper = upper or 1
-  local lower = lower or -1
-  data:apply(function(x) if x > upper then return upper elseif x < lower then return lower end end)
-  return data
-end
-
 function BinaryConnectLayer:updateOutput(input)
   if self.weightsDirty > 0 then
+    local binTime = sys.clock()
     self.binWeight = self:_binarize(self.rvWeight)
     self.weightsDirty = 0
+    if self.verbose > 4 then print("<BinaryConnectLayer:updateOutput> time to binarize: " .. string.format("%.2f",(sys.clock() - binTime)) .. "s") end
+
   end
 
   -- switch to binary weights for duration of upgradeGradInput
@@ -71,12 +90,10 @@ function BinaryConnectLayer:updateGradInput(input, gradOutput)
 end
 
 function BinaryConnectLayer:updateParameters(learningRate)
-  -- calculation of Glorot coefficients for use in scaling learningRate
-  local coeffGlorot = 1 / math.sqrt( 1.5 / ( self.weight:size(2) + self.weight:size(1) ) )
   -- update real-valued parameters
-  Parent.updateParameters(self, learningRate * math.pow(coeffGlorot,self.powerGlorot))
+  Parent.updateParameters(self, learningRate * self.scaleGlorot)
   -- clip weights
-  self.weight = self:_clip(self.weight)
+  self.weight:clamp(-1,1)
   -- flag binWeights for update
   self.weightsDirty = 1
 
