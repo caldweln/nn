@@ -18,16 +18,23 @@ function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
   self.weight = self.rvWeight
   -- initialize
 
-  if opt.weightInitTbl then
-    self:initWeights(opt.weightInitTbl.alpha,opt.weightInitTbl.beta,opt.weightInitTbl.gamma,opt.weightInitTbl.delta)
+  if opt.weightInit then
+    self:initWeights(opt.weightInit)
   else
     self:reset()
   end
 end
 
 
-function BinaryConnectLayer:initWeights(alpha, beta, gamma, delta)
-  local u = alpha * math.pow(beta,gamma) + delta
+function BinaryConnectLayer:initWeights(formula)
+  self.fanin = self.weight:size(2)
+  self.fanout = self.weight:size(1)
+  formula = string.gsub(formula,'fanin',self.fanin)
+  formula = string.gsub(formula,'fanout',self.fanout)
+  local u = tonumber(formula) or loadstring('return '..formula)
+  if type(u) == 'function' then
+    u = u()
+  end
   self.weight:uniform(-u, u)
   self.bias:uniform(-u, u)
   return self
