@@ -17,7 +17,7 @@ function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
   -- pointer to real-valued weights by default
   self.weight = self.rvWeight
   -- initialize
-
+self.usesnap = opt._usesnap
   if opt.weightInit then
     self:initWeights(opt.weightInit)
   else
@@ -56,7 +56,7 @@ function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold fo
   elseif self.binarization == 'det' then
     binTime = sys.clock()
     threshold = threshold or 0
-    if type(result.snap) == 'function' then -- this is enough for our purposes
+    if self.usesnap > 0 and type(result.snap) == 'function' then -- this is enough for our purposes
       result:snap(threshold, -1, threshold-1e-10, 1) --subtract v small number to approximate replace > with >= (carefull: replacing < with <= may have condition overlap)
       if self.verbose > 4 then print("<BinaryConnectLayer:_binarize> using 'Tensor.snap' to update tensor") end
     else
