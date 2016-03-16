@@ -50,8 +50,9 @@ function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold fo
     binTime = sys.clock()
     threshold = threshold or 0.5
     local p = self:_binSigmoid(result)
-    result[ p:ge(threshold) ] = 1
-    result[ p:lt(threshold) ] = -1
+
+    result:map(p,function(a,b) if math.random() < b then return 1 else return -1 end end)
+    
   elseif self.binarization == 'det' then
     binTime = sys.clock()
     threshold = threshold or 0

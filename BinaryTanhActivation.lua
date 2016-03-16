@@ -17,8 +17,9 @@ function BinaryTanhActivation:updateOutput(input)
   self.output = input:clone() -- non-destructive on input
   if self.binWeights == 'stoch' then
     local p = self:_binSigmoid(self.output)
-    self.output[ p:ge(0.5) ] = 1
-    self.output[ p:lt(0.5) ] = -1
+
+    self.output:map(p,function(a,b) if math.random() < b then return 1 else return -1 end end)
+
   elseif self.binWeights == 'det' then
     --  make all positive values  1
     self.output[ input:gt(0) ] = 1;
