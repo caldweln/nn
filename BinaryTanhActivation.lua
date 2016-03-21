@@ -14,7 +14,7 @@ end
 
 function BinaryTanhActivation:updateOutput(input)
   self.output:resizeAs(input)
-  self.output = input:clone() -- non-destructive on input
+  self.output:copy(input) -- non-destructive on input
   if self.binWeights == 'stoch' then
     local p = self:_binSigmoid(self.output)
 
