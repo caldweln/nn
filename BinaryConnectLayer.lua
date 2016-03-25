@@ -2,7 +2,7 @@ local BinaryConnectLayer, Parent = torch.class('nn.BinaryConnectLayer', 'nn.Line
 
 function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
   Parent.__init(self, inputSize, outputSize)
-  self.verbose = opt.verbose
+  self.verbose = opt.run.verbose
   -- binarized parameters for propagation
   self.rvWeight = torch.Tensor(outputSize, inputSize)
   self.binWeight = torch.Tensor(outputSize, inputSize)
@@ -13,12 +13,12 @@ function BinaryConnectLayer:__init(inputSize, outputSize, powerGlorot, opt)
   self.powerGlorot = powerGlorot or 0 -- Glorot disable => 0, adam optim => 1, sgd optim => 2
   self.scaleGlorot = math.pow(coeffGlorot,self.powerGlorot)
 
-  self.binarization = opt.binarization or 'det' -- 'det' | 'stoch'
+  self.binarization = opt.arch.binarization or 'det' -- 'det' | 'stoch'
   -- pointer to real-valued weights by default
   self.weight = self.rvWeight
   -- initialize
-  if opt.weightInit then
-    self:initWeights(opt.weightInit)
+  if opt.arch.weightInit then
+    self:initWeights(opt.arch.weightInit)
   else
     self:reset()
   end
@@ -52,7 +52,7 @@ function BinaryConnectLayer:_binarize(data, threshold) -- inclusive threshold fo
     local p = self:_binSigmoid(result)
 
     result:map(p,function(a,b) if math.random() < b then return 1 else return -1 end end)
-    
+
   elseif self.binarization == 'det' then
     binTime = sys.clock()
     threshold = threshold or 0
