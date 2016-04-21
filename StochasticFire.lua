@@ -13,7 +13,7 @@ function StochasticFire:updateOutput(input)
    end
 
    if self.train == false then
-     self.output = torch.round(x)
+     self.output:round()
    else
      self.output:apply(function(x) if x < 0 then return -torch.bernoulli(-x) else return torch.bernoulli(x) end end)
    end
