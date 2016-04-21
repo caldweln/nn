@@ -11,9 +11,12 @@ function StochasticFire:updateOutput(input)
    else
       self.output:resizeAs(input):copy(input)
    end
-   
-   self.output:apply(function(x) if x < 0 then return -torch.bernoulli(-x) else return torch.bernoulli(x) end end)
 
+   if self.train == false then
+     self.output = torch.round(x)
+   else
+     self.output:apply(function(x) if x < 0 then return -torch.bernoulli(-x) else return torch.bernoulli(x) end end)
+   end
    return self.output
 end
 
