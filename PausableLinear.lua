@@ -6,10 +6,43 @@ function PausableLinear:__init(inputSize, outputSize, opt)
    self.pause = 0 -- pos value to prevent accGradParameters/updateParameters
    self.isRecording = 0
    self.inputRecord = nil
+
    -- initialize
    if opt.arch.weightInit ~= nil and opt.arch.weightInit ~= '' then
      self:initWeights(opt.arch.weightInit)
    end
+end
+
+function PausableLinear:binarizeWeights(negWeightCounts, posWeightCounts)
+  -- for each neuron
+  for i=1,self.weight:size(1) do
+    -- find threshold values specific to this neuron
+    local wCount = self.weight[i]:nElement() + 1
+    local orderedWeights = torch.cat(self.weight[i],torch.Tensor(1):fill(self.bias[i])):resize(wCount):sort()
+    local weightBinarizationThresholdLow = orderedWeights[negWeightCounts[i]]
+    local weightBinarizationThresholdHigh = orderedWeights[wCount-posWeightCounts[i]+1]
+    -- binarize using thresholds
+    self.weight[i]:apply(
+      function(x)
+        if x <= weightBinarizationThresholdLow then
+          return -1
+        elseif x >= weightBinarizationThresholdHigh then
+          return 1
+        else
+          return 0
+        end
+      end)
+
+    if self.bias[i] <= weightBinarizationThresholdLow then
+      self.bias[i] = -1
+    elseif self.bias[i] >= weightBinarizationThresholdHigh then
+      self.bias[i] = 1
+    else
+      self.bias[i] = 0
+    end
+
+  end
+
 end
 
 function PausableLinear:initWeights(formula)
