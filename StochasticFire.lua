@@ -15,7 +15,14 @@ function StochasticFire:updateOutput(input)
    if self.train == false then
      self.output:round()
    else
-     self.output:apply(function(x) if x < 0 then return -torch.bernoulli(-x) else return torch.bernoulli(x) end end)
+     if type(self.output.cbernoulli) == 'function' then
+       local neg = - self.output:clone()
+       neg:cbernoulli()
+       self.output:cbernoulli()
+       self.output:add(-neg)
+     else
+       self.output:apply(function(x) if x < 0 then return -torch.bernoulli(-x) else return torch.bernoulli(x) end end)
+     end
    end
    return self.output
 end
