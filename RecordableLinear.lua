@@ -36,7 +36,7 @@ function RecordableLinear:updateOutput(input)
     end
   end
 
-  local output Parent.updateOutput(self, input)
+  local output = Parent.updateOutput(self, input)
 
   if self.isRecording > 0 and self.train == true then -- record output
     if self.outputRecord ~= nil then
