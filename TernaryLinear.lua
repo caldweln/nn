@@ -4,6 +4,10 @@ function TernaryLinear:__init(inputSize, outputSize, outputThresholdHighs, outpu
    parent.__init(self)
 
    self.weight = torch.Tensor(outputSize, inputSize)
+   self.bias = torch.Tensor(outputSize):zero() -- never used
+   self.gradWeight = torch.Tensor(outputSize, inputSize):zero() -- never used
+   self.gradBias = torch.Tensor(outputSize):zero() -- never used
+
    self.outputThresholdHighs = outputThresholdHighs
    self.outputThresholdLows = outputThresholdLows
 end
@@ -41,6 +45,23 @@ function TernaryLinear:updateOutput(input)
   end
 
   return self.output
+end
+
+function TernaryLinear:updateGradInput(input, gradOutput)
+   if self.gradInput then
+
+      local nElement = self.gradInput:nElement()
+      self.gradInput:resizeAs(input)
+      if self.gradInput:nElement() ~= nElement then
+         self.gradInput:zero()
+      end
+
+      return self.gradInput
+   end
+end
+
+
+function TernaryLinear:updateParameters(learningRate)
 end
 
 function TernaryLinear:__tostring__()
