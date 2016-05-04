@@ -28,7 +28,7 @@ function RecordableLinear:initWeights(formula)
 end
 
 function RecordableLinear:updateOutput(input)
-  if self.isRecording > 0 and self.train == true then -- record input
+  if self.isRecording > 0 then -- record input
     if self.inputRecord ~= nil then
       self.inputRecord = torch.cat(self.inputRecord, input, 1)
     else
@@ -38,7 +38,7 @@ function RecordableLinear:updateOutput(input)
 
   local output = Parent.updateOutput(self, input)
 
-  if self.isRecording > 0 and self.train == true then -- record output
+  if self.isRecording > 0 then -- record output
     if self.outputRecord ~= nil then
       self.outputRecord = torch.cat(self.outputRecord, output, 1)
     else
