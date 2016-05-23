@@ -89,6 +89,7 @@ require('nn.RReLU')
 require('nn.ELU')
 
 require('nn.LookupTable')
+require('nn.TernSpatialConvolution')
 require('nn.SpatialConvolution')
 require('nn.SpatialConvolutionLocal')
 require('nn.SpatialFullConvolution')
