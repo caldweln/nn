@@ -89,7 +89,6 @@ require('nn.RReLU')
 require('nn.ELU')
 
 require('nn.LookupTable')
-require('nn.TernSpatialConvolution')
 require('nn.SpatialConvolution')
 require('nn.SpatialConvolutionLocal')
 require('nn.SpatialFullConvolution')
@@ -167,5 +166,10 @@ require('nn.Jacobian')
 require('nn.SparseJacobian')
 require('nn.hessian')
 require('nn.test')
+
+require('nn.RecordableLinear')
+require('nn.TernaryLinear')
+require('nn.StochasticFire')
+require('nn.TernSpatialConvolution')
 
 return nn
