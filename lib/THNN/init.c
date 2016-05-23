@@ -39,3 +39,129 @@
 
 #include "generic/LookupTable.c"
 #include "THGenerateFloatTypes.h"
+
+#include "generic/MSECriterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/MarginCriterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SoftMarginCriterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/MultiLabelMarginCriterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/MultiMarginCriterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/PReLU.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/RReLU.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/Sigmoid.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SmoothL1Criterion.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SoftMax.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SoftPlus.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SoftShrink.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SparseLinear.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/Sqrt.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/Square.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/Tanh.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/Threshold.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/TemporalConvolution.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/TemporalSubSampling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/TemporalMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/BatchNormalization.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/unfold.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialConvolutionMap.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialConvolutionMM.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialConvolutionLocal.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialFullConvolution.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialFullConvolutionMap.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialAdaptiveMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialAveragePooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialFractionalMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialMaxUnpooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialSubSampling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialUpSamplingNearest.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricAveragePooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricConvolution.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricConvolutionMM.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricFullConvolution.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricMaxPooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/VolumetricMaxUnpooling.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialReflectionPadding.c"
+#include "THGenerateFloatTypes.h"
+
+#include "generic/SpatialReplicationPadding.c"
+#include "THGenerateFloatTypes.h"

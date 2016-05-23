@@ -2,7 +2,7 @@ local SpatialConvolutionMM, parent = torch.class('nn.SpatialConvolutionMM', 'nn.
 
 function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH)
    parent.__init(self)
-   
+
    dW = dW or 1
    dH = dH or 1
 
@@ -21,9 +21,6 @@ function SpatialConvolutionMM:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, 
    self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane*kH*kW)
    self.gradBias = torch.Tensor(nOutputPlane)
 
-   self.finput = torch.Tensor()
-   self.fgradInput = torch.Tensor()
-   
    self:reset()
 end
 
@@ -39,7 +36,7 @@ function SpatialConvolutionMM:reset(stdv)
       end)
       self.bias:apply(function()
          return torch.uniform(-stdv, stdv)
-      end)  
+      end)
    else
       self.weight:uniform(-stdv, stdv)
       self.bias:uniform(-stdv, stdv)
@@ -63,6 +60,8 @@ local function makeContiguous(self, input, gradOutput)
 end
 
 function SpatialConvolutionMM:updateOutput(input)
+   self.finput = self.finput or input.new()
+   self.fgradInput = self.fgradInput or input.new()
    -- backward compatibility
    if self.padding then
       self.padW = self.padding
@@ -70,24 +69,59 @@ function SpatialConvolutionMM:updateOutput(input)
       self.padding = nil
    end
    input = makeContiguous(self, input)
-   return input.nn.SpatialConvolutionMM_updateOutput(self, input)
+   input.THNN.SpatialConvolutionMM_updateOutput(
+      input:cdata(),
+      self.output:cdata(),
+      self.weight:cdata(),
+      self.bias:cdata(),
+      self.finput:cdata(),
+      self.fgradInput:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH
+   )
+   return self.output
 end
 
 function SpatialConvolutionMM:updateGradInput(input, gradOutput)
    if self.gradInput then
       input, gradOutput = makeContiguous(self, input, gradOutput)
-      return input.nn.SpatialConvolutionMM_updateGradInput(self, input, gradOutput)
+      input.THNN.SpatialConvolutionMM_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         self.gradInput:cdata(),
+         self.weight:cdata(),
+         self.bias:cdata(),
+         self.finput:cdata(),
+         self.fgradInput:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH
+      )
+      return self.gradInput
    end
 end
 
 function SpatialConvolutionMM:accGradParameters(input, gradOutput, scale)
+   scale = scale or 1
    input, gradOutput = makeContiguous(self, input, gradOutput)
-   return input.nn.SpatialConvolutionMM_accGradParameters(self, input, gradOutput, scale)
+   input.THNN.SpatialConvolutionMM_accGradParameters(
+      input:cdata(),
+      gradOutput:cdata(),
+      self.gradWeight:cdata(),
+      self.gradBias:cdata(),
+      self.finput:cdata(),
+      self.fgradInput:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      scale
+   )
 end
 
 function SpatialConvolutionMM:type(type,tensorCache)
-   self.finput = torch.Tensor()
-   self.fgradInput = torch.Tensor()
+   self.finput = self.finput and torch.Tensor()
+   self.fgradInput = self.fgradInput and torch.Tensor()
    return parent.type(self,type,tensorCache)
 end
 
@@ -102,3 +136,9 @@ function SpatialConvolutionMM:__tostring__()
    end
    return s .. ')'
 end
+
+function SpatialConvolutionMM:clearState()
+   nn.utils.clear(self, 'finput', 'fgradInput', '_input', '_gradOutput')
+   return parent.clearState(self)
+end
+

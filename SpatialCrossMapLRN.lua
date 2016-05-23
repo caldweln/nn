@@ -7,16 +7,24 @@ function SpatialCrossMapLRN:__init(size, alpha, beta, k)
   self.alpha = alpha or 0.0001
   self.beta = beta or 0.75
   self.k = k or 1
-
-  self.scale = torch.Tensor()
 end
 
 function SpatialCrossMapLRN:updateOutput(input)
   assert(input:dim() == 3 or input:dim() == 4,
          'Input must be 3D or 4D')
 
+  self.scale = self.scale or input.new()
+
   if torch.type(input) == 'torch.CudaTensor' then
-     input.nn.SpatialCrossMapLRN_updateOutput(self, input)
+     input.THNN.SpatialCrossMapLRN_updateOutput(
+        input:cdata(),
+        self.output:cdata(),
+        self.scale:cdata(),
+        self.size,
+        self.alpha,
+        self.beta,
+        self.k
+     )
   else
      local isBatch = true
      if input:dim() == 3 then
@@ -80,7 +88,17 @@ function SpatialCrossMapLRN:updateGradInput(input, gradOutput)
          'Input must be 3D or 4D')
  
   if torch.type(input) == 'torch.CudaTensor' then
-     input.nn.SpatialCrossMapLRN_updateGradInput(self, input, gradOutput)
+     input.THNN.SpatialCrossMapLRN_updateGradInput(
+        input:cdata(),
+        gradOutput:cdata(),
+        self.gradInput:cdata(),
+        self.scale:cdata(),
+        self.output:cdata(),
+        self.size,
+        self.alpha,
+        self.beta,
+        self.k
+     )
   else
      local isBatch = true
      if input:dim() == 3 then
@@ -126,4 +144,10 @@ function SpatialCrossMapLRN:updateGradInput(input, gradOutput)
   end
 
   return self.gradInput
+end
+
+
+function SpatialCrossMapLRN:clearState()
+   nn.utils.clear(self, 'scale', 'paddedRatio', 'accumRatio')
+  return parent.clearState(self)
 end

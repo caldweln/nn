@@ -28,9 +28,6 @@ function SpatialFullConvolution:__init(nInputPlane, nOutputPlane,
    self.bias = torch.Tensor(self.nOutputPlane)
    self.gradBias = torch.Tensor(self.nOutputPlane)
 
-   self.finput = torch.Tensor()
-   self.fgradInput = torch.Tensor()
-
    self:reset()
 end
 
@@ -69,10 +66,25 @@ function SpatialFullConvolution:backCompatibility()
 end
 
 function SpatialFullConvolution:updateOutput(input)
+  self.finput = self.finput or input.new()
+  self.fgradInput = self.fgradInput or input.new()
   self:backCompatibility()
 
   input = makeContiguous(self, input)
-  return input.nn.SpatialFullConvolution_updateOutput(self, input)
+  input.THNN.SpatialFullConvolution_updateOutput(
+    input:cdata(),
+    self.output:cdata(),
+    self.weight:cdata(),
+    self.bias:cdata(),
+    self.finput:cdata(),
+    self.fgradInput:cdata(),
+    self.kW, self.kH,
+    self.dW, self.dH,
+    self.padW, self.padH,
+    self.adjW, self.adjH
+  )
+
+  return self.output
 end
 
 function SpatialFullConvolution:updateGradInput(input, gradOutput)
@@ -80,20 +92,45 @@ function SpatialFullConvolution:updateGradInput(input, gradOutput)
 
   if self.gradInput then
     input, gradOutput = makeContiguous(self, input, gradOutput)
-    return input.nn.SpatialFullConvolution_updateGradInput(self, input, gradOutput)
+    input.THNN.SpatialFullConvolution_updateGradInput(
+      input:cdata(),
+      gradOutput:cdata(),
+      self.gradInput:cdata(),
+      self.weight:cdata(),
+      self.finput:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      self.adjW, self.adjH
+    )
+
+    return self.gradInput
   end
 end
 
 function SpatialFullConvolution:accGradParameters(input, gradOutput, scale)
+  scale = scale or 1
   self:backCompatibility()
 
   input, gradOutput = makeContiguous(self, input, gradOutput)
-  return input.nn.SpatialFullConvolution_accGradParameters(self, input, gradOutput, scale)
+  input.THNN.SpatialFullConvolution_accGradParameters(
+    input:cdata(),
+    gradOutput:cdata(),
+    self.gradWeight:cdata(),
+    self.gradBias:cdata(),
+    self.finput:cdata(),
+    self.fgradInput:cdata(),
+    self.kW, self.kH,
+    self.dW, self.dH,
+    self.padW, self.padH,
+    self.adjW, self.adjH,
+    scale
+  )
 end
 
 function SpatialFullConvolution:type(type, tensorCache)
-  self.finput = torch.Tensor()
-  self.fgradInput = torch.Tensor()
+  self.finput = self.finput and torch.Tensor()
+  self.fgradInput = self.fgradInput and torch.Tensor()
   return parent.type(self, type, tensorCache)
 end
 
@@ -111,3 +148,9 @@ function SpatialFullConvolution:__tostring__()
   end
   return s .. ')'
 end
+
+function SpatialFullConvolution:clearState()
+   nn.utils.clear(self, 'finput', 'fgradInput', '_input', '_gradOutput')
+   return parent.clearState(self)
+end
+

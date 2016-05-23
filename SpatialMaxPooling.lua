@@ -5,7 +5,7 @@ function SpatialMaxPooling:__init(kW, kH, dW, dH, padW, padH)
 
    dW = dW or kW
    dH = dH or kH
-   
+
    self.kW = kW
    self.kH = kH
    self.dW = dW
@@ -29,35 +29,56 @@ function SpatialMaxPooling:floor()
 end
 
 function SpatialMaxPooling:updateOutput(input)
+   self.indices = self.indices or input.new()
    -- backward compatibility
    self.ceil_mode = self.ceil_mode or false
    self.padW = self.padW or 0
    self.padH = self.padH or 0
-   input.nn.SpatialMaxPooling_updateOutput(self, input)
+   input.THNN.SpatialMaxPooling_updateOutput(
+      input:cdata(),
+      self.output:cdata(),
+      self.indices:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      self.ceil_mode
+   )
    return self.output
 end
 
 function SpatialMaxPooling:updateGradInput(input, gradOutput)
-   input.nn.SpatialMaxPooling_updateGradInput(self, input, gradOutput)
+   input.THNN.SpatialMaxPooling_updateGradInput(
+      input:cdata(),
+      gradOutput:cdata(),
+      self.gradInput:cdata(),
+      self.indices:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      self.ceil_mode
+   )
    return self.gradInput
 end
 
+-- for backward compat
 function SpatialMaxPooling:empty()
-   self.gradInput:resize()
-   self.gradInput:storage():resize(0)
-   self.output:resize()
-   self.output:storage():resize(0)
-   self.indices:resize()
-   self.indices:storage():resize(0)
+   self:clearState()
 end
 
 function SpatialMaxPooling:__tostring__()
-   local s =  string.format('%s(%d,%d,%d,%d', torch.type(self),
+   local s =  string.format('%s(%dx%d, %d,%d', torch.type(self),
                             self.kW, self.kH, self.dW, self.dH)
    if (self.padW or self.padH) and (self.padW ~= 0 or self.padH ~= 0) then
-      s = s .. ',' .. self.padW .. ','.. self.padH
+      s = s .. ', ' .. self.padW .. ','.. self.padH
    end
    s = s .. ')'
 
    return s
+end
+
+function SpatialMaxPooling:clearState()
+   if self.indices then
+      self.indices:set()
+   end
+   return parent.clearState(self)
 end

@@ -64,8 +64,8 @@ function nn.utils.recursiveType(param, type, tensorCache)
                   param:size(),
                   param:stride()
                )
-               tensorCache[param] = newparam
             end
+            tensorCache[param] = newparam
          end
          assert(torch.type(newparam) == type)
          param = newparam
@@ -79,6 +79,11 @@ function nn.utils.recursiveResizeAs(t1,t2)
       t1 = (torch.type(t1) == 'table') and t1 or {t1}
       for key,_ in pairs(t2) do
          t1[key], t2[key] = nn.utils.recursiveResizeAs(t1[key], t2[key])
+      end
+      for key,_ in pairs(t1) do
+         if not t2[key] then
+            t1[key] = nil
+         end
       end
    elseif torch.isTensor(t2) then
       t1 = torch.isTensor(t1) and t1 or t2.new()
@@ -116,7 +121,7 @@ function nn.utils.recursiveAdd(t1, val, t2)
       for key,_ in pairs(t2) do
          t1[key], t2[key] = nn.utils.recursiveAdd(t1[key], val, t2[key])
       end
-   elseif torch.isTensor(t2) and torch.isTensor(t2) then
+   elseif torch.isTensor(t1) and torch.isTensor(t2) then
       t1:add(val, t2)
    else
       error("expecting nested tensors or tables. Got "..
@@ -148,6 +153,41 @@ function nn.utils.addSingletonDimension(t, dim)
 
   view:set(t:storage(), t:storageOffset(), size, stride)
   return view
+end
+
+function nn.utils.contiguousView(output, input, ...)
+  output = output or input.new()
+  if input:isContiguous() then
+    output:view(input, ...)
+  else
+    output:resizeAs(input)
+    output:copy(input)
+    output:view(output, ...)
+  end
+  return output
+end
+
+-- go over specified fields and clear them. accepts
+-- nn.utils.clearState(self, {'_buffer', '_buffer2'}) and
+-- nn.utils.clearState(self, '_buffer', '_buffer2')
+function nn.utils.clear(self, ...)
+   local arg = {...}
+   if #arg > 0 and type(arg[1]) == 'table' then
+      arg = arg[1]
+   end
+   local function clear(f)
+      if self[f] then
+         if torch.isTensor(self[f]) then
+            self[f]:set()
+         elseif type(self[f]) == 'table' then
+            self[f] = {}
+         else
+            self[f] = nil
+         end
+      end
+   end
+   for i,v in ipairs(arg) do clear(v) end
+   return self
 end
 
 table.unpack = table.unpack or unpack

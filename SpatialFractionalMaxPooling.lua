@@ -15,7 +15,6 @@ function SpatialFractionalMaxPooling:__init(poolSizeW, poolSizeH, arg1, arg2)
    -- Pool size (how wide the pooling for each output unit is)
    self.poolSizeW = poolSizeW
    self.poolSizeH = poolSizeH
-   self.indices = torch.Tensor()
 
    -- Random samples are drawn for all
    -- batch * plane * (height, width; i.e., 2) points. This determines
@@ -115,13 +114,15 @@ function SpatialFractionalMaxPooling:fixPoolingRegions(val)
 end
 
 function SpatialFractionalMaxPooling:updateOutput(input)
+   self.indices = self.indices or input.new()
    self:initSampleBuffer_(input)
    local outW, outH = self:getOutputSizes_(input)
 
-   input.nn.SpatialFractionalMaxPooling_updateOutput(
-      self.output, input,
+   input.THNN.SpatialFractionalMaxPooling_updateOutput(
+      input:cdata(),
+      self.output:cdata(),
       outW, outH, self.poolSizeW, self.poolSizeH,
-      self.indices, self.randomSamples)
+      self.indices:cdata(), self.randomSamples:cdata())
    return self.output
 end
 
@@ -131,25 +132,28 @@ function SpatialFractionalMaxPooling:updateGradInput(input, gradOutput)
 
    local outW, outH = self:getOutputSizes_(input)
 
-   input.nn.SpatialFractionalMaxPooling_updateGradInput(
-      self.gradInput, input, gradOutput,
+   input.THNN.SpatialFractionalMaxPooling_updateGradInput(
+      input:cdata(),
+      gradOutput:cdata(),
+      self.gradInput:cdata(),
       outW, outH, self.poolSizeW, self.poolSizeH,
-      self.indices)
+      self.indices:cdata())
    return self.gradInput
 end
 
+-- backward compat
 function SpatialFractionalMaxPooling:empty()
-   self.gradInput:resize()
-   self.gradInput:storage():resize(0)
-   self.output:resize()
-   self.output:storage():resize(0)
-   self.indices:resize()
-   self.indices:storage():resize(0)
+   self:clearState()
+end
+
+function SpatialFractionalMaxPooling:clearState()
+   self.indices = nil
    self.randomSamples = nil
+   return parent.clearState(self)
 end
 
 function SpatialFractionalMaxPooling:__tostring__()
-   return string.format('%s(%d,%d,%d,%d)', torch.type(self),
+   return string.format('%s(%dx%d, %d,%d)', torch.type(self),
                         self.outW and self.outW or self.ratioW,
                         self.outH and self.outH or self.ratioH,
                         self.poolSizeW, self.poolSizeH)

@@ -26,9 +26,6 @@ function SpatialConvolutionLocal:__init(nInputPlane, nOutputPlane, iW, iH ,kW, k
    self.gradWeight = torch.Tensor():resizeAs(self.weight)
    self.gradBias = torch.Tensor():resizeAs(self.bias)
 
-   self.finput = torch.Tensor()
-   self.fgradInput = torch.Tensor()
-
    self:reset()
 end
 
@@ -69,14 +66,14 @@ end
 
 local function viewWeight(self)
    self.weight = self.weight:view(self.oH * self.oW, self.nOutputPlane, self.nInputPlane * self.kH * self.kW)
-   if self.gradWeight and self.gradWeight:dim() > 0 then 
+   if self.gradWeight and self.gradWeight:dim() > 0 then
       self.gradWeight = self.gradWeight:view(self.oH * self.oW, self.nOutputPlane, self.nInputPlane * self.kH * self.kW)
    end
 end
 
 local function unviewWeight(self)
    self.weight = self.weight:view(self.oH, self.oW, self.nOutputPlane, self.nInputPlane, self.kH, self.kW)
-   if self.gradWeight and self.gradWeight:dim() > 0 then 
+   if self.gradWeight and self.gradWeight:dim() > 0 then
       self.gradWeight = self.gradWeight:view(self.oH, self.oW, self.nOutputPlane, self.nInputPlane, self.kH, self.kW)
    end
 end
@@ -84,12 +81,12 @@ end
 local function checkInputSize(self, input)
    if input:nDimension() == 3 then
       if input:size(1) ~= self.nInputPlane or input:size(2) ~= self.iH or input:size(3) ~= self.iW then
-         error(string.format('Given input size: (%dx%dx%d) inconsistent with expected input size: (%dx%dx%d).', 
+         error(string.format('Given input size: (%dx%dx%d) inconsistent with expected input size: (%dx%dx%d).',
                              input:size(1), input:size(2), input:size(3), self.nInputPlane, self.iH, self.iW))
       end
    elseif input:nDimension() == 4 then
       if input:size(2) ~= self.nInputPlane or input:size(3) ~= self.iH or input:size(4) ~= self.iW then
-         error(string.format('Given input size: (%dx%dx%dx%d) inconsistent with expected input size: (batchsize x%dx%dx%d).', 
+         error(string.format('Given input size: (%dx%dx%dx%d) inconsistent with expected input size: (batchsize x%dx%dx%d).',
                               input:size(1), input:size(2), input:size(3), input:size(4), self.nInputPlane, self.iH, self.iW))
       end
    else
@@ -103,12 +100,12 @@ local function checkOutputSize(self, input, output)
    end
    if output:nDimension() == 3 then
       if output:size(1) ~= self.nOutputPlane or output:size(2) ~= self.oH or output:size(3) ~= self.oW then
-         error(string.format('Given output size: (%dx%dx%d) inconsistent with expected output size: (%dx%dx%d).', 
+         error(string.format('Given output size: (%dx%dx%d) inconsistent with expected output size: (%dx%dx%d).',
                              output:size(1), output:size(2), output:size(3), self.nOutputPlane, self.oH, self.oW))
       end
    elseif output:nDimension() == 4 then
       if output:size(2) ~= self.nOutputPlane or output:size(3) ~= self.oH or output:size(4) ~= self.oW then
-         error(string.format('Given output size: (%dx%dx%dx%d) inconsistent with expected output size: (batchsize x%dx%dx%d).', 
+         error(string.format('Given output size: (%dx%dx%dx%d) inconsistent with expected output size: (batchsize x%dx%dx%d).',
                               output:size(1), output:size(2), output:size(3), output:size(4), self.nOutputPlane, self.oH, self.oW))
       end
    else
@@ -117,12 +114,26 @@ local function checkOutputSize(self, input, output)
 end
 
 function SpatialConvolutionLocal:updateOutput(input)
+   self.finput = self.finput or input.new()
+   self.fgradInput = self.fgradInput or input.new()
    checkInputSize(self, input)
    viewWeight(self)
    input = makeContiguous(self, input)
-   local out = input.nn.SpatialConvolutionLocal_updateOutput(self, input)
+   input.THNN.SpatialConvolutionLocal_updateOutput(
+      input:cdata(),
+      self.output:cdata(),
+      self.weight:cdata(),
+      self.bias:cdata(),
+      self.finput:cdata(),
+      self.fgradInput:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      self.iW, self.iH,
+      self.oW, self.oH
+   )
    unviewWeight(self)
-   return out
+   return self.output
 end
 
 function SpatialConvolutionLocal:updateGradInput(input, gradOutput)
@@ -131,25 +142,50 @@ function SpatialConvolutionLocal:updateGradInput(input, gradOutput)
    if self.gradInput then
       viewWeight(self)
       input, gradOutput = makeContiguous(self, input, gradOutput)
-      local out = input.nn.SpatialConvolutionLocal_updateGradInput(self, input, gradOutput)
+      input.THNN.SpatialConvolutionLocal_updateGradInput(
+         input:cdata(),
+         gradOutput:cdata(),
+         self.gradInput:cdata(),
+         self.weight:cdata(),
+         self.finput:cdata(),
+         self.fgradInput:cdata(),
+         self.kW, self.kH,
+         self.dW, self.dH,
+         self.padW, self.padH,
+         self.iW, self.iH,
+         self.oW, self.oH
+      )
       unviewWeight(self)
-      return out
+      return self.gradInput
    end
 end
 
 function SpatialConvolutionLocal:accGradParameters(input, gradOutput, scale)
+   scale = scale or 1
    checkInputSize(self, input)
    checkOutputSize(self, input, gradOutput)
    input, gradOutput = makeContiguous(self, input, gradOutput)
    viewWeight(self)
-   local out = input.nn.SpatialConvolutionLocal_accGradParameters(self, input, gradOutput, scale)
+   input.THNN.SpatialConvolutionLocal_accGradParameters(
+      input:cdata(),
+      gradOutput:cdata(),
+      self.gradWeight:cdata(),
+      self.gradBias:cdata(),
+      self.finput:cdata(),
+      self.fgradInput:cdata(),
+      self.kW, self.kH,
+      self.dW, self.dH,
+      self.padW, self.padH,
+      self.iW, self.iH,
+      self.oW, self.oH,
+      scale
+   )
    unviewWeight(self)
-   return out
 end
 
 function SpatialConvolutionLocal:type(type,tensorCache)
-   self.finput = torch.Tensor()
-   self.fgradInput = torch.Tensor()
+   self.finput = self.finput and torch.Tensor()
+   self.fgradInput = self.fgradInput and torch.Tensor()
    return parent.type(self,type,tensorCache)
 end
 
@@ -163,4 +199,9 @@ function SpatialConvolutionLocal:__tostring__()
      s = s .. ', ' .. self.padW .. ',' .. self.padH
    end
    return s .. ')'
+end
+
+function SpatialConvolutionLocal:clearState()
+   nn.utils.clear(self, 'finput', 'fgradInput', '_input', '_gradOutput')
+   return parent.clearState(self)
 end
