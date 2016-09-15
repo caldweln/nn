@@ -407,6 +407,18 @@ TH_API void THNN_(Tanh_updateGradInput)(
           THTensor *gradOutput,
           THTensor *gradInput,
           THTensor *output);
+TH_API void THNN_(TanhScaled_updateOutput)(
+          THNNState *state,
+          THTensor *input,
+          real scale,
+          THTensor *output);
+TH_API void THNN_(TanhScaled_updateGradInput)(
+          THNNState *state,
+          THTensor *input,
+          THTensor *gradOutput,
+          real scale,
+          THTensor *gradInput,
+          THTensor *output);
 
 TH_API void THNN_(Threshold_updateOutput)(
           THNNState *state,

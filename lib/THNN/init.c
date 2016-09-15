@@ -88,6 +88,9 @@
 #include "generic/Tanh.c"
 #include "THGenerateFloatTypes.h"
 
+#include "generic/TanhScaled.c"
+#include "THGenerateFloatTypes.h"
+
 #include "generic/Threshold.c"
 #include "THGenerateFloatTypes.h"
 
