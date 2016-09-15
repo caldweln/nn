@@ -170,7 +170,6 @@ require('nn.test')
 
 require('nn.RecordableLinear')
 require('nn.TernaryLinear')
-require('nn.StochasticFire')
 require('nn.TernSpatialConvolution')
 
 return nn
