@@ -20,7 +20,7 @@ function TernSpatialConvolution:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH
    self.biasHi = torch.Tensor(nOutputPlane):zero()
    self.biasLo = torch.Tensor(nOutputPlane):zero()
    self.bias  = torch.Tensor(nOutputPlane):zero()
-   
+
    self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane, kH, kW):zero()
    self.gradBias = torch.Tensor(nOutputPlane):zero()
 
@@ -102,14 +102,22 @@ function TernSpatialConvolution:updateOutput(input)
    )
    unviewWeight(self)
 
-  for i=1,self.output:size(1) do
-   for j=1,self.output:size(2) do
-    local mask1 = self.output[i][j]:gt( self.biasHi[j]  )
-    local mask2 = self.output[i][j]:lt( self.biasLo[j]  )
-    self.output[i][j]:maskedFill( mask1,1)
-    self.output[i][j]:maskedFill( mask2,-1)
-    self.output[i][j]:apply(function(x) if (x ~= -1 and x ~= 1)  then return 0 else return x end end)
-   end
+   if type(self.output.snap) == 'function' then -- this is enough for our purposes
+     for j=1,self.output:size(2) do
+       self.output[{{},j}]:snap(self.biasLo[j], -1, self.biasHi[j], 1)
+     end
+     self.output:apply(function(x) if (x ~= -1 and x ~= 1)  then return 0 else return x end end)
+   else
+
+    for i=1,self.output:size(1) do
+     for j=1,self.output:size(2) do
+      local mask1 = self.output[i][j]:gt( self.biasHi[j]  )
+      local mask2 = self.output[i][j]:lt( self.biasLo[j]  )
+      self.output[i][j]:maskedFill( mask1,1)
+      self.output[i][j]:maskedFill( mask2,-1)
+      self.output[i][j]:apply(function(x) if (x ~= -1 and x ~= 1)  then return 0 else return x end end)
+     end
+    end
   end
 
    return self.output
