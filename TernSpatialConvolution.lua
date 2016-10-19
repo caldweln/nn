@@ -102,20 +102,20 @@ function TernSpatialConvolution:updateOutput(input)
    )
    unviewWeight(self)
 
-   if type(self.output.snap) == 'function' then -- this is enough for our purposes
+   if type(self.output.snapd) == 'function' then -- this is enough for our purposes
      for j=1,self.output:size(2) do
-       self.output[{{},j}]:snap(self.biasLo[j], -1, self.biasHi[j], 1)
+       self.output[{{},j}]:snapd(self.biasLo[j], -1, self.biasHi[j], 1, 0)
      end
-     self.output:apply(function(x) if (x ~= -1 and x ~= 1)  then return 0 else return x end end)
    else
 
     for i=1,self.output:size(1) do
      for j=1,self.output:size(2) do
       local mask1 = self.output[i][j]:gt( self.biasHi[j]  )
       local mask2 = self.output[i][j]:lt( self.biasLo[j]  )
+      local mask3 = torch.pow((torch.add(mask1,mask2)-1),2)
       self.output[i][j]:maskedFill( mask1,1)
       self.output[i][j]:maskedFill( mask2,-1)
-      self.output[i][j]:apply(function(x) if (x ~= -1 and x ~= 1)  then return 0 else return x end end)
+      self.output[i][j]:maskedFill( mask3,0)
      end
     end
   end
