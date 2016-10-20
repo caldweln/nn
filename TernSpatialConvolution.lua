@@ -20,6 +20,9 @@ function TernSpatialConvolution:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH
    self.biasHi = torch.Tensor(nOutputPlane):zero()
    self.biasLo = torch.Tensor(nOutputPlane):zero()
    self.bias  = torch.Tensor(nOutputPlane):zero()
+   
+   -- flag per neuron to indicate output negation required before thresholding
+   self.inversion = torch.Tensor(nOutputPlane):zero()
 
    self.gradWeight = torch.Tensor(nOutputPlane, nInputPlane, kH, kW):zero()
    self.gradBias = torch.Tensor(nOutputPlane):zero()
@@ -104,6 +107,7 @@ function TernSpatialConvolution:updateOutput(input)
 
    if type(self.output.snapd) == 'function' then -- this is enough for our purposes
      for j=1,self.output:size(2) do
+       self.output[{{},j}] = (self.inversion ~= nil and self.inversion[j] > 0) and torch.mul(self.output[{{},j}],-1) or self.output[{{},j}] -- inefficient
        self.output[{{},j}]:snapd(self.biasLo[j], -1, self.biasHi[j], 1, 0)
      end
    else
