@@ -3,10 +3,6 @@ local SpatialConvolution, parent = torch.class('nn.SpatialConvolution', 'nn.Modu
 function SpatialConvolution:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH)
    parent.__init(self)
 
-   self.isRecording = 0
-   self.inputRecord = nil
-   self.outputRecord = nil
-
    dW = dW or 1
    dH = dH or 1
 
@@ -103,14 +99,6 @@ end
 
 function SpatialConvolution:updateOutput(input)
 
-  if self.isRecording > 0 then -- record input
-    if self.inputRecord ~= nil then
-      self.inputRecord = torch.cat(self.inputRecord, input, 1)
-    else
-      self.inputRecord = input:clone()
-    end
-  end
-
    backCompatibility(self)
    viewWeight(self)
    input = makeContiguous(self, input)
@@ -126,15 +114,6 @@ function SpatialConvolution:updateOutput(input)
       self.padW, self.padH
    )
    unviewWeight(self)
-
-
-   if self.isRecording > 0 then -- record output
-     if self.outputRecord ~= nil then
-       self.outputRecord = torch.cat(self.outputRecord, self.output, 1)
-     else
-       self.outputRecord = self.output:clone()
-     end
-   end
 
    return self.output
 end
@@ -188,10 +167,6 @@ function SpatialConvolution:type(type,tensorCache)
 end
 
 function SpatialConvolution:__tostring__()
-   
-  local pauseStr = ''
-  if self.isRecording > 0 then pauseStr = ' recording' end
-
   local s = string.format('%s(%d -> %d, %dx%d', torch.type(self),
          self.nInputPlane, self.nOutputPlane, self.kW, self.kH)
    if self.dW ~= 1 or self.dH ~= 1 or self.padW ~= 0 or self.padH ~= 0 then
@@ -200,7 +175,7 @@ function SpatialConvolution:__tostring__()
    if (self.padW or self.padH) and (self.padW ~= 0 or self.padH ~= 0) then
      s = s .. ', ' .. self.padW .. ',' .. self.padH
    end
-   return s .. ')'..pauseStr
+   return s .. ')'
 end
 
 function SpatialConvolution:clearState()
