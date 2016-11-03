@@ -20,7 +20,7 @@ function TernSpatialConvolution:__init(nInputPlane, nOutputPlane, kW, kH, dW, dH
    self.biasHi = torch.Tensor(nOutputPlane):zero()
    self.biasLo = torch.Tensor(nOutputPlane):zero()
    self.bias  = torch.Tensor(nOutputPlane):zero()
-   
+
    -- flag per neuron to indicate output negation required before thresholding
    self.inversion = torch.Tensor(nOutputPlane):zero()
 
@@ -116,7 +116,9 @@ function TernSpatialConvolution:updateOutput(input)
      for j=1,self.output:size(2) do
       local mask1 = self.output[i][j]:gt( self.biasHi[j]  )
       local mask2 = self.output[i][j]:lt( self.biasLo[j]  )
-      local mask3 = torch.pow((torch.add(mask1,mask2)-1),2)
+      local mask12 = torch.add(mask1,mask2)
+      mask12[mask12:gt(0)] = 1
+      local mask3 = torch.pow((mask12-1),2)
       self.output[i][j]:maskedFill( mask1,1)
       self.output[i][j]:maskedFill( mask2,-1)
       self.output[i][j]:maskedFill( mask3,0)

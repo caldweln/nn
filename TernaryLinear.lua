@@ -8,6 +8,9 @@ function TernaryLinear:__init(inputSize, outputSize, outputThresholdHighs, outpu
    self.gradWeight = torch.Tensor(outputSize, inputSize):zero() -- never used
    self.gradBias = torch.Tensor(outputSize):zero() -- never used
 
+   -- flag per neuron to indicate output negation required before thresholding
+   self.inversion = torch.Tensor(outputSize):zero()
+
    self.outputThresholdHighs = outputThresholdHighs
    self.outputThresholdLows = outputThresholdLows
 end
@@ -31,19 +34,11 @@ function TernaryLinear:updateOutput(input)
   end
 
   -- ternarize output
-  for i=1,self.output:size(1) do
-   self.output[i]:map2(self.outputThresholdHighs, self.outputThresholdLows,
-     function(outputVal, inThreshHigh, inThreshLow)
-       if outputVal > inThreshHigh then
-         return 1
-       elseif outputVal < inThreshLow then
-         return -1
-       else
-         return 0
-       end
-     end)
+  for j=1,self.output:size(2) do
+    self.output[{{},j}] = (self.inversion ~= nil and self.inversion[j] > 0) and torch.mul(self.output[{{},j}],-1) or self.output[{{},j}] -- inefficient
+    self.output[{{},j}]:snapd(self.outputThresholdLows[j], -1, self.outputThresholdHighs[j], 1, 0)
   end
-
+  
   return self.output
 end
 
